@@ -84,7 +84,6 @@ const ChangePassword = () => {
     } else {
       setIsCurrentPasswordValid(false);
     }
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     debouncedCurrentPassword,
