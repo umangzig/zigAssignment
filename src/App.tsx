@@ -13,6 +13,7 @@ import ChangePassword from "./components/profile/ChangePassword/ChangePassword";
 import NotFound from "./components/common/NotFound/NotFound";
 import { Box, Container } from "@mui/material";
 import "../src/index.css";
+import Cart from "./components/product/Cart/Cart";
 
 function App() {
   const [authenticated, setAuthenticated] = useState(isAuthenticated());
@@ -99,7 +100,15 @@ function App() {
               </ProtectedRoute>
             }
           />
-          
+          <Route
+            path="/cart"
+            element={
+              <ProtectedRoute>
+                <Cart />
+              </ProtectedRoute>
+            }
+          />
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Container>

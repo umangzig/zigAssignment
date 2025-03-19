@@ -15,6 +15,8 @@ import {
 import { Product } from "../../../types/product";
 import { getProductById } from "../../../utils/products.api";
 import { Toast } from "../../common/Toast/Toast";
+import { useAppDispatch } from "../../../redux/hooks";
+import { addToCart } from "../../../redux/slices/cartSlice";
 
 const ProductDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +26,7 @@ const ProductDetails = () => {
   const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
   const [showSuccess, setShowSuccess] = useState(false); 
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -34,7 +37,7 @@ const ProductDetails = () => {
           const data = await getProductById(id);
           setProduct(data);
         }
-      } catch (err) {
+      } catch{
         setError("Failed to fetch product details. Please try again later.");
       } finally {
         setLoading(false);
@@ -47,11 +50,21 @@ const ProductDetails = () => {
     setLoadedImages((prev) => new Set(prev).add(imageUrl));
   };
 
+  // const handleAddToCart = () => {
+  //   setShowSuccess(true);
+  //   setTimeout(() => {
+  //     setShowSuccess(false); 
+  //   }, 2000);
+  // };
+
   const handleAddToCart = () => {
-    setShowSuccess(true);
-    setTimeout(() => {
-      setShowSuccess(false); 
-    }, 2000);
+    if (product) {
+      dispatch(addToCart(product)); 
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+      }, 2000);
+    }
   };
 
   if (loading) {
