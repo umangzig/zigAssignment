@@ -5,16 +5,20 @@ import {
   Button,
   Typography,
   Container,
-  Alert,
   IconButton,
   InputAdornment,
+  CircularProgress,
 } from "@mui/material";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChangePasswordForm } from "../../../types/changePassword";
 import { decryptPassword, encryptPassword } from "../../../utils/encryption";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useNavigate } from "react-router-dom";
+import { VALIDATION_MESSAGES } from "../../../constants/message";
+import { REGEX } from "../../../constants/regex";
+import { Toast } from "../../common/Toast/Toast";
+import useDebounce from "../../common/useDebounce/useDebounce";
 
 const ChangePassword = () => {
   const {
@@ -22,17 +26,23 @@ const ChangePassword = () => {
     handleSubmit,
     formState: { errors },
     watch,
-  } = useForm<ChangePasswordForm>();
+    trigger,
+    setError: setFormError,
+  } = useForm<ChangePasswordForm>({
+    mode: "onChange",
+    reValidateMode: "onChange",
+  });
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isCurrentPasswordValid, setIsCurrentPasswordValid] = useState(false);
+  const [isChecking, setIsChecking] = useState(false); 
   const newPassword = watch("newPassword");
+  const currentPassword = watch("currentPassword");
+  const debouncedCurrentPassword = useDebounce(currentPassword, 500); 
   const navigate = useNavigate();
-
-  const passwordRegex =
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
 
   const handleClickShowCurrentPassword = () =>
     setShowCurrentPassword((prev) => !prev);
@@ -40,22 +50,62 @@ const ChangePassword = () => {
   const handleClickShowConfirmPassword = () =>
     setShowConfirmPassword((prev) => !prev);
 
+  useEffect(() => {
+    if (currentPassword !== debouncedCurrentPassword) {
+      setIsChecking(true);
+    } else {
+      setIsChecking(false); 
+    }
+
+    if (debouncedCurrentPassword) {
+      const currentUser = JSON.parse(
+        localStorage.getItem("currentUser") || "{}"
+      );
+      const decryptedPassword = decryptPassword(currentUser.password);
+
+      if (
+        debouncedCurrentPassword.trim().length > 0 &&
+        debouncedCurrentPassword !== decryptedPassword
+      ) {
+        setFormError("currentPassword", {
+          type: "manual",
+          message: VALIDATION_MESSAGES.CURRENT_PASSWORD_INCORRECT,
+        });
+        setIsCurrentPasswordValid(false);
+      } else if (debouncedCurrentPassword === decryptedPassword) {
+        setIsCurrentPasswordValid(true);
+        if (errors.currentPassword?.type === "manual") {
+          setFormError("currentPassword", { type: "manual", message: "" });
+        }
+      } else {
+        setIsCurrentPasswordValid(false);
+      }
+    } else {
+      setIsCurrentPasswordValid(false);
+    }
+  }, [
+    debouncedCurrentPassword,
+    currentPassword,
+    setFormError,
+    errors.currentPassword,
+  ]);
+
   const onSubmit: SubmitHandler<ChangePasswordForm> = (data) => {
     const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
     const users = JSON.parse(localStorage.getItem("users") || "[]");
 
     if (decryptPassword(currentUser.password) !== data.currentPassword) {
-      setError("Current password is incorrect");
+      setError(VALIDATION_MESSAGES.CURRENT_PASSWORD_INCORRECT);
       return;
     }
 
     if (data.newPassword === decryptPassword(currentUser.password)) {
-      setError("New password cannot be the same as the current password");
+      setError(VALIDATION_MESSAGES.SAME_AS_CURRENT);
       return;
     }
 
     if (data.newPassword !== data.confirmNewPassword) {
-      setError("New passwords do not match");
+      setError(VALIDATION_MESSAGES.PASSWORDS_DONT_MATCH);
       return;
     }
 
@@ -69,11 +119,17 @@ const ChangePassword = () => {
 
     localStorage.setItem("users", JSON.stringify(updatedUsers));
     localStorage.setItem("currentUser", JSON.stringify(updatedUser));
-    setSuccess("Password changed successfully");
+    setSuccess(VALIDATION_MESSAGES.PASSWORD_CHANGE_SUCCESS);
     setError("");
-    setTimeout(() => {
+  };
+
+  const handleToastClose = () => {
+    if (success) {
+      setSuccess("");
       navigate("/products");
-    }, 1000);
+    } else {
+      setError("");
+    }
   };
 
   return (
@@ -82,20 +138,14 @@ const ChangePassword = () => {
         <Typography variant="h4" gutterBottom>
           Change Password
         </Typography>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-        {success && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            {success}
-          </Alert>
-        )}
         <form onSubmit={handleSubmit(onSubmit)}>
           <TextField
             {...register("currentPassword", {
-              required: "Current Password is required",
+              required: VALIDATION_MESSAGES.REQUIRED,
+              validate: {
+                notOnlySpaces: (value) =>
+                  value.trim().length > 0 || VALIDATION_MESSAGES.SPACES_ONLY,
+              },
             })}
             type={showCurrentPassword ? "text" : "password"}
             label="Current Password"
@@ -103,9 +153,16 @@ const ChangePassword = () => {
             margin="normal"
             error={!!errors.currentPassword}
             helperText={errors.currentPassword?.message}
+            onChange={async (e) => {
+              await register("currentPassword").onChange(e);
+              await trigger("currentPassword");
+            }}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
+                  {isChecking && (
+                    <CircularProgress size={20} sx={{ mr: 1 }} /> 
+                  )}
                   <IconButton
                     aria-label="toggle current password visibility"
                     onClick={handleClickShowCurrentPassword}
@@ -118,19 +175,27 @@ const ChangePassword = () => {
           />
           <TextField
             {...register("newPassword", {
-              required: "New Password is required",
+              required: VALIDATION_MESSAGES.REQUIRED,
               pattern: {
-                value: passwordRegex,
-                message:
-                  "Password must be 8-32 characters with uppercase, lowercase, number, and special character",
+                value: REGEX.PASSWORD_REGEX,
+                message: VALIDATION_MESSAGES.INVALID_PASSWORD,
+              },
+              validate: {
+                notOnlySpaces: (value) =>
+                  value.trim().length > 0 || VALIDATION_MESSAGES.SPACES_ONLY,
               },
             })}
             type={showNewPassword ? "text" : "password"}
             label="New Password"
             fullWidth
             margin="normal"
+            disabled={!isCurrentPasswordValid}
             error={!!errors.newPassword}
             helperText={errors.newPassword?.message}
+            onChange={async (e) => {
+              await register("newPassword").onChange(e);
+              await trigger("newPassword");
+            }}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -146,16 +211,26 @@ const ChangePassword = () => {
           />
           <TextField
             {...register("confirmNewPassword", {
-              required: "Confirm New Password is required",
-              validate: (value) =>
-                value === newPassword || "Passwords do not match",
+              required: VALIDATION_MESSAGES.REQUIRED,
+              validate: {
+                matchesNewPassword: (value) =>
+                  value === newPassword ||
+                  VALIDATION_MESSAGES.PASSWORDS_DONT_MATCH,
+                notOnlySpaces: (value) =>
+                  value.trim().length > 0 || VALIDATION_MESSAGES.SPACES_ONLY,
+              },
             })}
             type={showConfirmPassword ? "text" : "password"}
             label="Confirm New Password"
             fullWidth
             margin="normal"
+            disabled={!isCurrentPasswordValid}
             error={!!errors.confirmNewPassword}
             helperText={errors.confirmNewPassword?.message}
+            onChange={async (e) => {
+              await register("confirmNewPassword").onChange(e);
+              await trigger("confirmNewPassword");
+            }}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -169,11 +244,28 @@ const ChangePassword = () => {
               ),
             }}
           />
-          <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
+          <Button
+            type="submit"
+            variant="contained"
+            fullWidth
+            sx={{ mt: 2 }}
+            disabled={!isCurrentPasswordValid}>
             Change Password
           </Button>
         </form>
       </Box>
+      <Toast
+        open={!!success}
+        message={success}
+        severity="success"
+        onClose={handleToastClose}
+      />
+      <Toast
+        open={!!error}
+        message={error}
+        severity="error"
+        onClose={handleToastClose}
+      />
     </Container>
   );
 };

@@ -5,7 +5,6 @@ import {
   Container,
   Box,
   Typography,
-  Alert,
   CircularProgress,
   TextField,
   Select,
@@ -23,6 +22,8 @@ import {
 } from "../../../utils/products.api";
 import ProductCard from "../ProductCard/ProductCard";
 import useDebounce from "../../common/useDebounce/useDebounce";
+import { Toast } from "../../common/Toast/Toast";
+import { VALIDATION_MESSAGES } from "../../../constants/message";
 
 const ProductList = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -37,40 +38,40 @@ const ProductList = () => {
   const debouncedSearch = useDebounce(searchQuery, 500);
   const limit: number = 8;
 
-useEffect(() => {
-  const fetchProducts = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      let response: ProductResponse = { products: [], total: 0 };
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        let response: ProductResponse = { products: [], total: 0 };
 
-      if (debouncedSearch) {
-        response = await searchProducts(
-          debouncedSearch,
-          (page - 1) * limit,
-          limit
-        );
-      } else if (selectedCategory) {
-        response = await getProductsByCategory(
-          selectedCategory,
-          (page - 1) * limit,
-          limit
-        );
-      } else {
-        response = await getProducts((page - 1) * limit, limit);
+        if (debouncedSearch) {
+          response = await searchProducts(
+            debouncedSearch,
+            (page - 1) * limit,
+            limit
+          );
+        } else if (selectedCategory) {
+          response = await getProductsByCategory(
+            selectedCategory,
+            (page - 1) * limit,
+            limit
+          );
+        } else {
+          response = await getProducts((page - 1) * limit, limit);
+        }
+
+        setProducts(response.products || []);
+        setTotal(response.total || 0);
+      } catch (err) {
+        setError(VALIDATION_MESSAGES.FAIL_TO_FETCH_PRODUCT);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      setProducts(response.products || []); 
-      setTotal(response.total || 0); 
-    } catch (err) {
-      setError("Failed to fetch products. Please try again later.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  fetchProducts();
-}, [debouncedSearch, selectedCategory, page]);
+    fetchProducts();
+  }, [debouncedSearch, selectedCategory, page]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -78,7 +79,7 @@ useEffect(() => {
         const categoryList = await getCategories();
         setCategories(categoryList);
       } catch (err) {
-        console.error("Failed to fetch categories:", err);
+        setError(VALIDATION_MESSAGES.FAIL_TO_FETCH_CATEGORY);
       }
     };
 
@@ -155,11 +156,12 @@ useEffect(() => {
           </Button>
         </Box>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 2, textAlign: "center" }}>
-            {error}
-          </Alert>
-        )}
+        <Toast
+          open={!!error}
+          message={error}
+          severity="error"
+          autoHideDuration={1000}
+        />
 
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>

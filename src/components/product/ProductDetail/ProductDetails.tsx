@@ -8,14 +8,13 @@ import {
   Grid,
   Button,
   CircularProgress,
-  Snackbar,
-  Alert,
   ImageList,
   ImageListItem,
   Divider,
 } from "@mui/material";
 import { Product } from "../../../types/product";
 import { getProductById } from "../../../utils/products.api";
+import { Toast } from "../../common/Toast/Toast";
 
 const ProductDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -203,18 +202,12 @@ const ProductDetails = () => {
         </Grid>
       </Box>
 
-      <Snackbar
+      <Toast
         open={showSuccess}
-        autoHideDuration={2000} 
-        onClose={() => setShowSuccess(false)}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}>
-        <Alert severity="success" sx={{ width: "100%" }}>
-          Product added to cart successfully!
-          <Typography variant="caption" color="textSecondary">
-            (This is a static message, functionality in progress)
-          </Typography>
-        </Alert>
-      </Snackbar>
+        message=  "Product added to cart successfully!"
+        severity="success"
+        autoHideDuration={1000}
+      />
     </Container>
   );
 };

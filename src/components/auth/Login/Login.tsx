@@ -5,7 +5,6 @@ import {
   Button,
   Typography,
   Container,
-  Alert,
   Paper,
   IconButton,
   InputAdornment,
@@ -16,15 +15,23 @@ import { LoginForm, LoginProps } from "../../../types/login";
 import { loginUser } from "../../../utils/auth";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { VALIDATION_MESSAGES } from "../../../constants/message"; 
+import { REGEX } from "../../../constants/regex"; 
+import { Toast } from "../../common/Toast/Toast";
 
 const Login = ({ onLoginSuccess }: LoginProps) => {
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginForm>();
+    trigger, 
+  } = useForm<LoginForm>({
+    mode: "onChange", 
+    reValidateMode: "onChange", 
+  });
   const navigate = useNavigate();
   const [error, setError] = useState<string>("");
+  const [success, setSuccess] = useState<string>("");
   const [showPassword, setShowPassword] = useState(false);
 
   const handleClickShowPassword = () => setShowPassword((prev) => !prev);
@@ -32,10 +39,22 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
   const onSubmit: SubmitHandler<LoginForm> = async (data) => {
     try {
       await loginUser(data.email, data.password);
-      onLoginSuccess();
-      navigate("/products");
+      setSuccess(VALIDATION_MESSAGES.LOGIN_SUCCESS); 
+      setError(""); 
+      setTimeout(() => {
+        onLoginSuccess();
+      }, 1000);
     } catch (error) {
-      setError((error as Error).message);
+      setError((error as Error).message || VALIDATION_MESSAGES.UNKNOWN_ERROR);
+    }
+  };
+
+  const handleToastClose = () => {
+    if (success) {
+      setSuccess(""); 
+      navigate("/products"); 
+    } else {
+      setError(""); 
     }
   };
 
@@ -58,31 +77,48 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
             Login
           </Typography>
         </Box>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
         <form onSubmit={handleSubmit(onSubmit)}>
           <TextField
             {...register("email", {
-              required: "Email is required",
-              pattern: { value: /^\S+@\S+$/i, message: "Invalid email" },
+              required: VALIDATION_MESSAGES.REQUIRED,
+              pattern: {
+                value: REGEX.EMAIL_REGEX, 
+                message: VALIDATION_MESSAGES.INVALID_EMAIL,
+              },
+              validate: {
+                notOnlySpaces: (value) =>
+                  value.trim().length > 0 || VALIDATION_MESSAGES.SPACES_ONLY,
+                noLeadingSpace: (value) =>
+                  value.trimStart() === value ||
+                  "Email cannot start with a space",
+              },
             })}
             label="Email"
             fullWidth
             margin="normal"
             error={!!errors.email}
             helperText={errors.email?.message}
+            onChange={async (e) => {
+              await register("email").onChange(e); 
+              await trigger("email"); 
+            }}
           />
           <TextField
-            {...register("password", { required: "Password is required" })}
+            {...register("password", {
+              required: VALIDATION_MESSAGES.REQUIRED,
+              validate: (value) =>
+                value.trim().length > 0 || VALIDATION_MESSAGES.SPACES_ONLY,
+            })}
             type={showPassword ? "text" : "password"}
             label="Password"
             fullWidth
             margin="normal"
             error={!!errors.password}
             helperText={errors.password?.message}
+            onChange={async (e) => {
+              await register("password").onChange(e); 
+              await trigger("password"); 
+            }}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -100,11 +136,22 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
             Login
           </Button>
           <Typography variant="body2" sx={{ mt: 2, textAlign: "center" }}>
-            Don't have an account?
-            <Link to="/signup">Sign Up</Link>
+            Don't have an account? <Link to="/signup">Sign Up</Link>
           </Typography>
         </form>
       </Paper>
+      <Toast
+        open={!!success}
+        message={success}
+        severity="success"
+        onClose={handleToastClose}
+      />
+      <Toast
+        open={!!error}
+        message={error}
+        severity="error"
+        onClose={handleToastClose}
+      />
     </Container>
   );
 };

@@ -1,10 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { isAuthenticated } from "../../../utils/auth";
-import { ProtectedRouteProps } from "../../../types/protectedRoute";
-
-interface ExtendedProtectedRouteProps extends ProtectedRouteProps {
-  redirectWhenAuthenticated?: boolean;
-}
+import { ExtendedProtectedRouteProps } from "../../../types/protectedRoute";
 
 const ProtectedRoute = ({
   children,

@@ -21,4 +21,5 @@ const LogoutButton = ({ onLogoutSuccess }: LogoutButtonProps) => {
   );
 };
 
+
 export default LogoutButton;

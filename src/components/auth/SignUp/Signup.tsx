@@ -5,7 +5,6 @@ import {
   Button,
   Typography,
   Container,
-  Alert,
   Grid,
   Paper,
   IconButton,
@@ -17,6 +16,9 @@ import { signupUser } from "../../../utils/auth";
 import { SignupForm } from "../../../types/signUp";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { VALIDATION_MESSAGES } from "../../../constants/message";
+import { REGEX } from "../../../constants/regex";
+import { Toast } from "../../common/Toast/Toast";
 
 const Signup = () => {
   const {
@@ -24,15 +26,17 @@ const Signup = () => {
     handleSubmit,
     formState: { errors },
     watch,
-  } = useForm<SignupForm>();
+    trigger,
+  } = useForm<SignupForm>({
+    mode: "onBlur",
+    reValidateMode: "onChange",
+  });
   const navigate = useNavigate();
   const [error, setError] = useState<string>("");
+  const [success, setSuccess] = useState<string>("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const password = watch("password");
-
-  const passwordRegex =
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
 
   const handleClickShowPassword = () => setShowPassword((prev) => !prev);
   const handleClickShowConfirmPassword = () =>
@@ -41,7 +45,7 @@ const Signup = () => {
   const onSubmit: SubmitHandler<SignupForm> = async (data) => {
     try {
       if (data.password !== data.confirmPassword) {
-        setError("Passwords do not match");
+        setError(VALIDATION_MESSAGES.PASSWORDS_DONT_MATCH);
         return;
       }
 
@@ -56,9 +60,18 @@ const Signup = () => {
 
       await signupUser(userData);
       setError("");
-      navigate("/");
+      setSuccess(VALIDATION_MESSAGES.SIGNUP_SUCCESS); 
     } catch (error) {
-      setError((error as Error).message || "An error occurred during signup");
+      setError((error as Error).message || VALIDATION_MESSAGES.UNKNOWN_ERROR);
+    }
+  };
+
+  const handleToastClose = () => {
+    if (success) {
+      setSuccess(""); 
+      navigate("/"); 
+    } else {
+      setError(""); 
     }
   };
 
@@ -81,75 +94,112 @@ const Signup = () => {
             Sign Up
           </Typography>
         </Box>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
         <form onSubmit={handleSubmit(onSubmit)}>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
               <TextField
                 {...register("firstName", {
-                  required: "First Name is required",
+                  required: VALIDATION_MESSAGES.REQUIRED,
+                  validate: (value) =>
+                    value.trim().length > 0 || VALIDATION_MESSAGES.SPACES_ONLY,
                 })}
                 label="First Name"
                 fullWidth
                 error={!!errors.firstName}
                 helperText={errors.firstName?.message}
+                onChange={async (e) => {
+                  await register("firstName").onChange(e);
+                  await trigger("firstName");
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                {...register("lastName", { required: "Last Name is required" })}
+                {...register("lastName", {
+                  required: VALIDATION_MESSAGES.REQUIRED,
+                  validate: (value) =>
+                    value.trim().length > 0 || VALIDATION_MESSAGES.SPACES_ONLY,
+                })}
                 label="Last Name"
                 fullWidth
                 error={!!errors.lastName}
                 helperText={errors.lastName?.message}
+                onChange={async (e) => {
+                  await register("lastName").onChange(e);
+                  await trigger("lastName");
+                }}
               />
             </Grid>
             <Grid item xs={12}>
               <TextField
                 {...register("email", {
-                  required: "Email is required",
-                  pattern: { value: /^\S+@\S+$/i, message: "Invalid email" },
+                  required: VALIDATION_MESSAGES.REQUIRED,
+                  pattern: {
+                    value: REGEX.EMAIL_REGEX,
+                    message: VALIDATION_MESSAGES.INVALID_EMAIL,
+                  },
+                  validate: (value) =>
+                    value.trim().length > 0 || VALIDATION_MESSAGES.SPACES_ONLY,
                 })}
                 label="Email"
                 fullWidth
                 error={!!errors.email}
                 helperText={errors.email?.message}
+                onChange={async (e) => {
+                  await register("email").onChange(e);
+                  await trigger("email");
+                }}
               />
             </Grid>
             <Grid item xs={12}>
               <TextField
                 {...register("mobile", {
-                  required: "Mobile is required",
+                  required: VALIDATION_MESSAGES.REQUIRED,
                   pattern: {
                     value: /^[0-9]{10}$/,
-                    message: "Mobile number must be exactly 10 digits",
+                    message: VALIDATION_MESSAGES.INVALID_MOBILE,
+                  },
+                  validate: {
+                    notEmpty: (value) =>
+                      value.trim().length > 0 ||
+                      VALIDATION_MESSAGES.SPACES_ONLY,
+                    notAllZeros: (value) =>
+                      value !== "0000000000" || VALIDATION_MESSAGES.ALL_ZEROS,
+                    maxLength: (value) =>
+                      value.length <= 10 ||
+                      VALIDATION_MESSAGES.MAX_MOBILE_LENGTH,
                   },
                 })}
                 label="Mobile Number"
                 fullWidth
                 error={!!errors.mobile}
                 helperText={errors.mobile?.message}
+                onChange={async (e) => {
+                  await register("mobile").onChange(e);
+                  await trigger("mobile");
+                }}
               />
             </Grid>
             <Grid item xs={12}>
               <TextField
                 {...register("password", {
-                  required: "Password is required",
+                  required: VALIDATION_MESSAGES.REQUIRED,
                   pattern: {
-                    value: passwordRegex,
-                    message:
-                      "Password must be 8-32 characters with uppercase, lowercase, number, and special character",
+                    value: REGEX.PASSWORD_REGEX,
+                    message: VALIDATION_MESSAGES.INVALID_PASSWORD,
                   },
+                  validate: (value) =>
+                    value.trim().length > 0 || VALIDATION_MESSAGES.SPACES_ONLY,
                 })}
                 type={showPassword ? "text" : "password"}
                 label="Password"
                 fullWidth
                 error={!!errors.password}
                 helperText={errors.password?.message}
+                onChange={async (e) => {
+                  await register("password").onChange(e);
+                  await trigger("password");
+                }}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
@@ -167,15 +217,25 @@ const Signup = () => {
             <Grid item xs={12}>
               <TextField
                 {...register("confirmPassword", {
-                  required: "Confirm Password is required",
-                  validate: (value) =>
-                    value === password || "Passwords do not match",
+                  required: VALIDATION_MESSAGES.REQUIRED,
+                  validate: {
+                    matchesPassword: (value) =>
+                      value === password ||
+                      VALIDATION_MESSAGES.PASSWORDS_DONT_MATCH,
+                    notEmpty: (value) =>
+                      value.trim().length > 0 ||
+                      VALIDATION_MESSAGES.SPACES_ONLY,
+                  },
                 })}
                 type={showConfirmPassword ? "text" : "password"}
                 label="Confirm Password"
                 fullWidth
                 error={!!errors.confirmPassword}
                 helperText={errors.confirmPassword?.message}
+                onChange={async (e) => {
+                  await register("confirmPassword").onChange(e);
+                  await trigger("confirmPassword");
+                }}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
@@ -213,6 +273,20 @@ const Signup = () => {
           </Grid>
         </form>
       </Paper>
+      <Toast
+        open={!!success}
+        message={success}
+        severity="success"
+        onClose={handleToastClose}
+        autoHideDuration={1000}
+      />
+      <Toast
+        open={!!error}
+        message={error}
+        severity="error"
+        onClose={handleToastClose}
+        autoHideDuration={1000}
+      />
     </Container>
   );
 };

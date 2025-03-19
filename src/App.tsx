@@ -27,7 +27,6 @@ function App() {
 
   const handleLogoutSuccess = () => {
     setAuthenticated(false);
-    localStorage.removeItem("users");
   };
 
   return (
@@ -100,7 +99,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-
+          
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Container>

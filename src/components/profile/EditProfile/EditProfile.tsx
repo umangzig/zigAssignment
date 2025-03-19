@@ -5,19 +5,23 @@ import {
   Button,
   Typography,
   Container,
-  Alert,
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import { User } from "../../../types/user";
 import { useNavigate } from "react-router-dom";
-34499917034
+import { Toast } from "../../common/Toast/Toast";
+import { VALIDATION_MESSAGES } from "../../../constants/message";
+import { REGEX } from "../../../constants/regex";
+
 const EditProfile = () => {
   const {
     register,
     handleSubmit,
     formState: { errors, isDirty },
     reset,
-  } = useForm<User>();
+  } = useForm<User>({
+    mode: "onChange", 
+  });
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
   const navigate = useNavigate();
@@ -40,6 +44,15 @@ const EditProfile = () => {
     }
   }, [error]);
 
+  const handleToastClose = () => {
+    if (success) {
+      setSuccess("");
+      navigate("/products");
+    } else {
+      setError("");
+    }
+  };
+
   const onSubmit: SubmitHandler<User> = (data) => {
     const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
     const users = JSON.parse(localStorage.getItem("users") || "[]");
@@ -50,7 +63,7 @@ const EditProfile = () => {
     );
 
     if (emailExists) {
-      setError("Email already exists");
+      setError(VALIDATION_MESSAGES.ALREADY_EXITS);
       return;
     } else {
       const updatedUser = { ...currentUser, ...data };
@@ -60,7 +73,7 @@ const EditProfile = () => {
 
       localStorage.setItem("users", JSON.stringify(updatedUsers));
       localStorage.setItem("currentUser", JSON.stringify(updatedUser));
-      setSuccess("Profile updated successfully");
+      setSuccess(VALIDATION_MESSAGES.PROFILE_UPDATE_SUCCESS);
       setError("");
 
       setTimeout(() => {
@@ -75,19 +88,15 @@ const EditProfile = () => {
         <Typography variant="h4" gutterBottom>
           Edit Profile
         </Typography>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-        {success && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            {success}
-          </Alert>
-        )}
         <form onSubmit={handleSubmit(onSubmit)}>
           <TextField
-            {...register("firstName", { required: "First Name is required" })}
+            {...register("firstName", {
+              required: VALIDATION_MESSAGES.REQUIRED,
+              validate: {
+                notOnlySpaces: (value) =>
+                  value.trim().length > 0 || VALIDATION_MESSAGES.SPACES_ONLY,
+              },
+            })}
             label="First Name"
             fullWidth
             margin="normal"
@@ -95,7 +104,13 @@ const EditProfile = () => {
             helperText={errors.firstName?.message}
           />
           <TextField
-            {...register("lastName", { required: "Last Name is required" })}
+            {...register("lastName", {
+              required: VALIDATION_MESSAGES.REQUIRED,
+              validate: {
+                notOnlySpaces: (value) =>
+                  value.trim().length > 0 || VALIDATION_MESSAGES.SPACES_ONLY,
+              },
+            })}
             label="Last Name"
             fullWidth
             margin="normal"
@@ -104,8 +119,18 @@ const EditProfile = () => {
           />
           <TextField
             {...register("email", {
-              required: "Email is required",
-              pattern: { value: /^\S+@\S+$/i, message: "Invalid email" },
+              required: VALIDATION_MESSAGES.REQUIRED,
+              pattern: {
+                value: REGEX.EMAIL_REGEX,
+                message: VALIDATION_MESSAGES.INVALID_EMAIL,
+              },
+              validate: {
+                noLeadingSpace: (value) =>
+                  value.trimStart() === value ||
+                  VALIDATION_MESSAGES.NOT_START_WITH_SPACE,
+                notOnlySpaces: (value) =>
+                  value.trim().length > 0 || VALIDATION_MESSAGES.NOT_ONLY_SPACE,
+              },
             })}
             label="Email"
             fullWidth
@@ -115,14 +140,18 @@ const EditProfile = () => {
           />
           <TextField
             {...register("mobile", {
-              required: "Mobile is required",
+              required: VALIDATION_MESSAGES.REQUIRED,
               pattern: {
-                value: /^[0-9]+$/, 
-                message: "Only numbers are allowed",
+                value: REGEX.MOBILE_REGEX,
+                message: VALIDATION_MESSAGES.INVALID_MOBILE,
               },
-              maxLength: {
-                value: 10,
-                message: "Mobile number cannot exceed 10 digits",
+              validate: {
+                exactLength: (value) =>
+                  value.length === 10 || VALIDATION_MESSAGES.MAX_MOBILE_LENGTH,
+                notOnlyZeros: (value) =>
+                  value !== "0".repeat(10) || VALIDATION_MESSAGES.ALL_ZEROS,
+                notOnlySpaces: (value) =>
+                  value.trim().length > 0 || VALIDATION_MESSAGES.SPACES_ONLY,
               },
             })}
             label="Mobile"
@@ -142,6 +171,18 @@ const EditProfile = () => {
           </Button>
         </form>
       </Box>
+      <Toast
+        open={!!success}
+        message={success}
+        severity="success"
+        onClose={handleToastClose}
+      />
+      <Toast
+        open={!!error}
+        message={error}
+        severity="error"
+        onClose={handleToastClose}
+      />
     </Container>
   );
 };
