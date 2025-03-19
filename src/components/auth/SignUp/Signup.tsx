@@ -8,11 +8,15 @@ import {
   Alert,
   Grid,
   Paper,
+  IconButton,
+  InputAdornment,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { signupUser } from "../../../utils/auth";
 import { SignupForm } from "../../../types/signUp";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 
 const Signup = () => {
   const {
@@ -23,10 +27,16 @@ const Signup = () => {
   } = useForm<SignupForm>();
   const navigate = useNavigate();
   const [error, setError] = useState<string>("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const password = watch("password");
 
   const passwordRegex =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
+
+  const handleClickShowPassword = () => setShowPassword((prev) => !prev);
+  const handleClickShowConfirmPassword = () =>
+    setShowConfirmPassword((prev) => !prev);
 
   const onSubmit: SubmitHandler<SignupForm> = async (data) => {
     try {
@@ -135,11 +145,23 @@ const Signup = () => {
                       "Password must be 8-32 characters with uppercase, lowercase, number, and special character",
                   },
                 })}
-                type="password"
+                type={showPassword ? "text" : "password"}
                 label="Password"
                 fullWidth
                 error={!!errors.password}
                 helperText={errors.password?.message}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle password visibility"
+                        onClick={handleClickShowPassword}
+                        edge="end">
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
               />
             </Grid>
             <Grid item xs={12}>
@@ -149,11 +171,27 @@ const Signup = () => {
                   validate: (value) =>
                     value === password || "Passwords do not match",
                 })}
-                type="password"
+                type={showConfirmPassword ? "text" : "password"}
                 label="Confirm Password"
                 fullWidth
                 error={!!errors.confirmPassword}
                 helperText={errors.confirmPassword?.message}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle confirm password visibility"
+                        onClick={handleClickShowConfirmPassword}
+                        edge="end">
+                        {showConfirmPassword ? (
+                          <VisibilityOff />
+                        ) : (
+                          <Visibility />
+                        )}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
               />
             </Grid>
             <Grid item xs={12}>

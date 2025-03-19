@@ -6,12 +6,15 @@ import {
   Typography,
   Container,
   Alert,
+  IconButton,
+  InputAdornment,
 } from "@mui/material";
 import { useState } from "react";
 import { ChangePasswordForm } from "../../../types/changePassword";
 import { decryptPassword, encryptPassword } from "../../../utils/encryption";
-
-
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { useNavigate } from "react-router-dom";
 
 const ChangePassword = () => {
   const {
@@ -22,10 +25,20 @@ const ChangePassword = () => {
   } = useForm<ChangePasswordForm>();
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const newPassword = watch("newPassword");
+  const navigate = useNavigate();
 
   const passwordRegex =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
+
+  const handleClickShowCurrentPassword = () =>
+    setShowCurrentPassword((prev) => !prev);
+  const handleClickShowNewPassword = () => setShowNewPassword((prev) => !prev);
+  const handleClickShowConfirmPassword = () =>
+    setShowConfirmPassword((prev) => !prev);
 
   const onSubmit: SubmitHandler<ChangePasswordForm> = (data) => {
     const currentUser = JSON.parse(localStorage.getItem("currentUser") || "{}");
@@ -58,7 +71,9 @@ const ChangePassword = () => {
     localStorage.setItem("currentUser", JSON.stringify(updatedUser));
     setSuccess("Password changed successfully");
     setError("");
-    
+    setTimeout(() => {
+      navigate("/products");
+    }, 1000);
   };
 
   return (
@@ -82,12 +97,24 @@ const ChangePassword = () => {
             {...register("currentPassword", {
               required: "Current Password is required",
             })}
-            type="password"
+            type={showCurrentPassword ? "text" : "password"}
             label="Current Password"
             fullWidth
             margin="normal"
             error={!!errors.currentPassword}
             helperText={errors.currentPassword?.message}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle current password visibility"
+                    onClick={handleClickShowCurrentPassword}
+                    edge="end">
+                    {showCurrentPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
           <TextField
             {...register("newPassword", {
@@ -98,12 +125,24 @@ const ChangePassword = () => {
                   "Password must be 8-32 characters with uppercase, lowercase, number, and special character",
               },
             })}
-            type="password"
+            type={showNewPassword ? "text" : "password"}
             label="New Password"
             fullWidth
             margin="normal"
             error={!!errors.newPassword}
             helperText={errors.newPassword?.message}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle new password visibility"
+                    onClick={handleClickShowNewPassword}
+                    edge="end">
+                    {showNewPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
           <TextField
             {...register("confirmNewPassword", {
@@ -111,12 +150,24 @@ const ChangePassword = () => {
               validate: (value) =>
                 value === newPassword || "Passwords do not match",
             })}
-            type="password"
+            type={showConfirmPassword ? "text" : "password"}
             label="Confirm New Password"
             fullWidth
             margin="normal"
             error={!!errors.confirmNewPassword}
             helperText={errors.confirmNewPassword?.message}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle confirm password visibility"
+                    onClick={handleClickShowConfirmPassword}
+                    edge="end">
+                    {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
           <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
             Change Password

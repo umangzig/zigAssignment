@@ -7,11 +7,15 @@ import {
   Container,
   Alert,
   Paper,
+  IconButton,
+  InputAdornment,
 } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { LoginForm, LoginProps } from "../../../types/login";
 import { loginUser } from "../../../utils/auth";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 
 const Login = ({ onLoginSuccess }: LoginProps) => {
   const {
@@ -21,6 +25,9 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
   } = useForm<LoginForm>();
   const navigate = useNavigate();
   const [error, setError] = useState<string>("");
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleClickShowPassword = () => setShowPassword((prev) => !prev);
 
   const onSubmit: SubmitHandler<LoginForm> = async (data) => {
     try {
@@ -70,12 +77,24 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
           />
           <TextField
             {...register("password", { required: "Password is required" })}
-            type="password"
+            type={showPassword ? "text" : "password"}
             label="Password"
             fullWidth
             margin="normal"
             error={!!errors.password}
             helperText={errors.password?.message}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle password visibility"
+                    onClick={handleClickShowPassword}
+                    edge="end">
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
           />
           <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
             Login
