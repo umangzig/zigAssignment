@@ -11,7 +11,7 @@ const LogoutButton = ({ onLogoutSuccess }: LogoutButtonProps) => {
     if (onLogoutSuccess) {
       onLogoutSuccess();
     }
-    navigate("/login");
+    navigate("/");
   };
 
   return (

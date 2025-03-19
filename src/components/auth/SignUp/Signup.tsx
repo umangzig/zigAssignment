@@ -56,7 +56,7 @@ const Signup = () => {
 
       await signupUser(userData);
       setError("");
-      navigate("/login");
+      navigate("/");
     } catch (error) {
       setError((error as Error).message || "An error occurred during signup");
     }
