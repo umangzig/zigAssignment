@@ -8,6 +8,7 @@ import {
   Menu,
   MenuItem,
   ListItemIcon,
+  Box,
   
 } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
@@ -16,10 +17,13 @@ import { HeaderProps } from "../../../types/header";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import LockIcon from "@mui/icons-material/Lock";
 import LogoutIcon from "@mui/icons-material/Logout";
+import ShoppingCartOutlinedIcon from "@mui/icons-material/ShoppingCartOutlined";
+import { useAppSelector } from "../../../redux/hooks";
 
 const Header = ({ onLogoutSuccess }: HeaderProps) => {
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const cartItems = useAppSelector((state) => state.cart.items);
 
   const handleProfileClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -76,10 +80,48 @@ const Header = ({ onLogoutSuccess }: HeaderProps) => {
                 }}>
                 Products
               </Typography>
-              <IconButton size="large" color="inherit" onClick={handleProfileClick}>
-                <AccountCircleIcon  fontSize="large"/>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  position: "relative",
+                }}>
+                <IconButton
+                  size="large"
+                  color="inherit"
+                  onClick={() => navigate("/cart")}>
+                  <ShoppingCartOutlinedIcon fontSize="large" />
+                </IconButton>
+
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: 2,
+                    right: 4,
+                    width: 20,
+                    height: 20,
+                    bgcolor: "white",
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: 1,
+                  }}>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "black", fontWeight: "bold" }}>
+                    {cartItems.length}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <IconButton
+                size="large"
+                color="inherit"
+                onClick={handleProfileClick}>
+                <AccountCircleIcon fontSize="large" />
               </IconButton>
-            
+
               <Menu
                 anchorEl={anchorEl}
                 open={Boolean(anchorEl)}
@@ -125,7 +167,6 @@ const Header = ({ onLogoutSuccess }: HeaderProps) => {
           </Toolbar>
         </Container>
       </AppBar>
-
     </>
   );
 };
