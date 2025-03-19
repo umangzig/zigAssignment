@@ -19,6 +19,7 @@ import { VALIDATION_MESSAGES } from "../../../constants/message";
 import { REGEX } from "../../../constants/regex";
 import { Toast } from "../../common/Toast/Toast";
 import useDebounce from "../../common/useDebounce/useDebounce";
+import { User } from "../../../types/user";
 
 const ChangePassword = () => {
   const {
@@ -83,11 +84,10 @@ const ChangePassword = () => {
     } else {
       setIsCurrentPasswordValid(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     debouncedCurrentPassword,
     currentPassword,
-    setFormError,
-    errors.currentPassword,
   ]);
 
   const onSubmit: SubmitHandler<ChangePasswordForm> = (data) => {
@@ -113,7 +113,7 @@ const ChangePassword = () => {
       ...currentUser,
       password: encryptPassword(data.newPassword),
     };
-    const updatedUsers = users.map((user: any) =>
+    const updatedUsers = users.map((user: User) =>
       user.email === currentUser.email ? updatedUser : user
     );
 
